@@ -1,0 +1,20 @@
+name: WobbleShop
+version: 1.0.0
+main: me.wobble.wobbleshop.WobbleShopPlugin
+api-version: '1.21'
+authors: [Wobble]
+depend: [Vault]
+commands:
+  shop:
+    description: Opens the WobbleShop GUI.
+    usage: /shop [admin|reload|restock [category|itemId]]
+    permission: wobble.shop.use
+permissions:
+  wobble.shop.use:
+    default: true
+  wobble.shop.admin:
+    default: op
+  wobble.shop.reload:
+    default: op
+  wobble.shop.restock:
+    default: op
