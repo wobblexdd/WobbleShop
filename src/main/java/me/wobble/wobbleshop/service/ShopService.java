@@ -1,12 +1,12 @@
 package me.wobble.wobbleshop.service;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import me.wobble.wobbleshop.WobbleShopPlugin;
+import me.wobble.wobbleshop.config.ShopCatalogLoader;
 import me.wobble.wobbleshop.manager.EconomyManager;
 import me.wobble.wobbleshop.model.ShopCategory;
 import me.wobble.wobbleshop.model.ShopItem;
@@ -28,26 +28,25 @@ public final class ShopService {
     private final CategoryRepository categoryRepository;
     private final ShopItemRepository shopItemRepository;
     private final EconomyManager economyManager;
+    private final ShopCatalogLoader catalogLoader;
 
     public ShopService(WobbleShopPlugin plugin, CategoryRepository categoryRepository,
-                       ShopItemRepository shopItemRepository, EconomyManager economyManager) {
+                       ShopItemRepository shopItemRepository, EconomyManager economyManager,
+                       ShopCatalogLoader catalogLoader) {
         this.plugin = plugin;
         this.categoryRepository = categoryRepository;
         this.shopItemRepository = shopItemRepository;
         this.economyManager = economyManager;
+        this.catalogLoader = catalogLoader;
     }
 
     public synchronized void bootstrap() {
-        if (categoryRepository.isEmpty()) {
-            seedCategories();
-        }
-        if (shopItemRepository.isEmpty()) {
-            seedItems();
-        }
+        syncCatalogFromConfig();
     }
 
     public synchronized void reload() {
         economyManager.refresh();
+        syncCatalogFromConfig();
     }
 
     public synchronized List<ShopCategory> getCategories() {
@@ -312,9 +311,14 @@ public final class ShopService {
 
     public List<Material> getCategoryMaterialCycle(String categoryKey) {
         return switch (categoryKey.toLowerCase()) {
+            case "blocks" -> List.of(Material.STONE, Material.COBBLESTONE, Material.OAK_LOG, Material.GLASS, Material.COBBLED_DEEPSLATE);
+            case "food" -> List.of(Material.BREAD, Material.COOKED_BEEF, Material.BAKED_POTATO, Material.COOKED_CHICKEN, Material.GOLDEN_CARROT);
             case "farming" -> List.of(Material.WHEAT, Material.CARROT, Material.POTATO, Material.BEETROOT, Material.SUGAR_CANE);
-            case "mining" -> List.of(Material.COBBLESTONE, Material.COAL, Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND);
             case "mobdrops" -> List.of(Material.ROTTEN_FLESH, Material.BONE, Material.STRING, Material.GUNPOWDER, Material.SPIDER_EYE);
+            case "nether" -> List.of(Material.NETHERRACK, Material.QUARTZ, Material.GLOWSTONE_DUST, Material.BLAZE_ROD, Material.MAGMA_CREAM);
+            case "end" -> List.of(Material.END_STONE, Material.CHORUS_FRUIT, Material.POPPED_CHORUS_FRUIT, Material.SHULKER_SHELL, Material.ENDER_PEARL);
+            case "utility" -> List.of(Material.TORCH, Material.LANTERN, Material.BOOK, Material.EXPERIENCE_BOTTLE, Material.NAME_TAG);
+            case "combat" -> List.of(Material.ARROW, Material.SHIELD, Material.IRON_SWORD, Material.CROSSBOW, Material.TURTLE_HELMET);
             default -> List.of(Material.CHEST, Material.STONE, Material.EMERALD);
         };
     }
@@ -394,36 +398,22 @@ public final class ShopService {
         ));
     }
 
-    private void seedCategories() {
-        List<ShopCategory> categories = List.of(
-                new ShopCategory("farming", "&aFarming", Material.WHEAT, 11, true),
-                new ShopCategory("mining", "&7Mining", Material.IRON_PICKAXE, 13, true),
-                new ShopCategory("mobdrops", "&cMob Drops", Material.BONE, 15, true)
-        );
-        categories.forEach(categoryRepository::save);
-    }
 
-    private void seedItems() {
-        List<ShopItem> items = new ArrayList<>();
-        items.add(new ShopItem(0, Material.WHEAT, "&eWheat Bundle", "farming", 10, 16.0D, 8.0D, false, true,
-                StockType.STATIC, 0, 256, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Basic farm produce.", "&7Stable sell value for early economy.")));
-        items.add(new ShopItem(0, Material.CARROT, "&6Carrots", "farming", 12, 20.0D, 9.5D, false, true,
-                StockType.STATIC, 0, 256, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Bulk carrots for fast turnover.")));
-        items.add(new ShopItem(0, Material.COBBLESTONE, "&7Cobblestone", "mining", 10, 12.0D, 4.0D, false, true,
-                StockType.STATIC, 0, 512, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Useful for quarry-heavy servers.")));
-        items.add(new ShopItem(0, Material.COAL, "&8Coal", "mining", 12, 32.0D, 14.0D, true, true,
-                StockType.LIMITED, 96, 128, true, 1800L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Limited stock example.", "&7Buying reduces remaining stock.")));
-        items.add(new ShopItem(0, Material.ROTTEN_FLESH, "&2Rotten Flesh", "mobdrops", 10, 10.0D, 3.0D, false, true,
-                StockType.STATIC, 0, 256, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Common mob drop sell item.")));
-        items.add(new ShopItem(0, Material.STRING, "&fString", "mobdrops", 12, 18.0D, 7.0D, true, true,
-                StockType.LIMITED, 64, 128, true, 2400L, System.currentTimeMillis(), ShopStatus.COMING_SOON,
-                List.of("&7Buy path exists but item status keeps it staged.")));
-        items.forEach(this::saveItem);
+    private void syncCatalogFromConfig() {
+        ShopCatalogLoader.LoadedCatalog loadedCatalog = catalogLoader.loadCatalog();
+        shopItemRepository.deleteAll();
+        categoryRepository.deleteAll();
+
+        for (ShopCategory category : loadedCatalog.categories()) {
+            categoryRepository.save(category);
+        }
+
+        for (ShopItem item : loadedCatalog.items()) {
+            if (getCategory(item.getCategory()).isEmpty()) {
+                continue;
+            }
+            saveItem(item);
+        }
     }
 
     private int nextOpenSlot(String categoryKey) {
