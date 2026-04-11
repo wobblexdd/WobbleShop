@@ -84,6 +84,16 @@ public final class ShopItemRepository {
         }
     }
 
+
+    public synchronized void deleteAll() {
+        String sql = "DELETE FROM shop_items";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Could not clear shop items.", exception);
+        }
+    }
+
     public synchronized boolean isEmpty() {
         String sql = "SELECT COUNT(*) FROM shop_items";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);

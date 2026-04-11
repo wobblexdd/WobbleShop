@@ -1,26 +1,20 @@
 # WobbleShop
 
-`WobbleShop` is a GUI-first Paper shop plugin with SQLite persistence and Vault economy support.
+Config-driven GUI shop plugin for Paper 1.21.x servers using Vault economy.
 
-It supports both static listings with infinite stock and limited listings with real stock, automatic restock, and admin-side item management through in-game menus.
+## Goals
 
-## Highlights
-
-- GUI-only player shop flow
-- Buy and sell support
-- Static and limited stock types
-- Real stock decrement on purchase
-- Automatic and manual restocking
-- SQLite-backed item persistence
-- Admin GUI for item management
-- Vault economy integration
+- Baseline shop for SMP progression (not pay-to-win)
+- Easy long-term rebalancing without code changes
+- Conservative defaults that do **not** replace player trading/auction
+- Category + item definitions in YAML files
 
 ## Requirements
 
 - Java 21
-- Paper 1.21.11+
+- Paper 1.21.x
 - Vault
-- An economy plugin compatible with Vault
+- Economy plugin (EssentialsX economy supported via Vault)
 
 ## Build
 
@@ -28,32 +22,19 @@ It supports both static listings with infinite stock and limited listings with r
 mvn clean package
 ```
 
-Output jar:
+## Core files
 
-- `target/WobbleShop-1.0.0.jar`
-
-## Installation
-
-1. Build the plugin with Maven.
-2. Install Vault and your economy plugin.
-3. Place the jar into your server `plugins/` folder.
-4. Start the server once to generate config files.
-5. Adjust `config.yml` and `messages.yml`.
-6. Restart the server.
+- `config.yml`: global settings (titles, sounds, restock task, economy guards)
+- `messages.yml`: translatable messages
+- `categories.yml`: category layout/icons/slots/enabled flags
+- `shop-items.yml`: all shop items, prices, buy/sell modes, stock model, visibility
 
 ## Commands
 
-### Player
-
-- `/shop`
-
-### Admin
-
-- `/shop admin`
-- `/shop reload`
-- `/shop restock`
-- `/shop restock <category>`
-- `/shop restock <itemId>`
+- `/shop` - open player shop
+- `/shop admin` - admin GUI tools
+- `/shop reload` - reload config + resync catalog from YAML
+- `/shop restock [category|itemId]` - manual restock for limited items
 
 ## Permissions
 
@@ -62,99 +43,18 @@ Output jar:
 - `wobble.shop.reload`
 - `wobble.shop.restock`
 
-## Core Features
+## Catalog design
 
-### Shop Flow
+- Categories are loaded from `categories.yml`.
+- Items are loaded from `shop-items.yml`.
+- Items can be:
+  - buy-only
+  - sell-only
+  - buy+sell
+  - disabled
+  - hidden (not shown/imported)
+- Prices/slots/materials/status/stock are all configurable.
 
-- `/shop` opens the main GUI
-- category GUI shows available items
-- item action GUI supports:
-  - buy `x1`
-  - buy `x16`
-  - buy `x64`
-  - sell `x1`
-  - sell `x16`
-  - sell `x64`
-  - sell all
+## Important balancing policy in defaults
 
-### Stock Types
-
-#### Static
-
-- infinite stock
-- never decreases
-- always available while active and enabled
-
-#### Limited
-
-- finite stock
-- decreases on successful buy
-- unavailable when stock is insufficient
-- can be restocked manually or automatically
-
-### Restock
-
-Supported restock flows:
-
-- full restock
-- category restock
-- single-item restock
-- automatic timed restock task
-
-## Configuration Overview
-
-Main sections in `config.yml`:
-
-- `database`
-- `shop`
-- `restock`
-- `economy`
-- `gui`
-- `sounds`
-
-Important defaults:
-
-- SQLite file: `shop.db`
-- restock task enabled: `true`
-- restock interval check: `60` seconds
-- `allow-sell-above-buy`: `false`
-
-## Persistence
-
-WobbleShop stores shop state in SQLite.
-
-Database file:
-
-- `plugins/WobbleShop/shop.db`
-
-Stored data includes:
-
-- categories
-- shop items
-- buy and sell prices
-- stock type
-- stock and max stock
-- restock settings
-- status and lore
-
-## Admin Editing
-
-The admin GUI supports:
-
-- creating items
-- editing category
-- editing slot
-- editing material
-- toggling buy and sell
-- changing prices
-- changing stock type
-- changing stock and max stock
-- toggling restock
-- changing restock interval
-- deleting items
-
-## Notes
-
-- WobbleShop depends on Vault at startup.
-- Sell logic is independent from shop stock.
-- The plugin is designed around GUI usage, not chat-driven trading.
+The default catalog excludes progression-breaking items from the normal shop (elytra, mace, dragon head) by keeping them hidden+disabled in a special category template.
