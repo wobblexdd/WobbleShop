@@ -1,12 +1,16 @@
 package me.wobble.wobbleshop.service;
 
 import java.text.DecimalFormat;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import me.wobble.wobbleshop.WobbleShopPlugin;
+import me.wobble.wobbleshop.config.ShopCatalogLoader;
 import me.wobble.wobbleshop.manager.EconomyManager;
 import me.wobble.wobbleshop.model.ShopCategory;
 import me.wobble.wobbleshop.model.ShopItem;
@@ -28,26 +32,29 @@ public final class ShopService {
     private final CategoryRepository categoryRepository;
     private final ShopItemRepository shopItemRepository;
     private final EconomyManager economyManager;
+    private final ShopCatalogLoader catalogLoader;
+
+    private final Map<Integer, PriceState> dynamicState = new HashMap<>();
+    private final Map<String, Long> cooldownTracker = new HashMap<>();
+    private final Map<String, Integer> dailyTracker = new HashMap<>();
 
     public ShopService(WobbleShopPlugin plugin, CategoryRepository categoryRepository,
-                       ShopItemRepository shopItemRepository, EconomyManager economyManager) {
+                       ShopItemRepository shopItemRepository, EconomyManager economyManager,
+                       ShopCatalogLoader catalogLoader) {
         this.plugin = plugin;
         this.categoryRepository = categoryRepository;
         this.shopItemRepository = shopItemRepository;
         this.economyManager = economyManager;
+        this.catalogLoader = catalogLoader;
     }
 
     public synchronized void bootstrap() {
-        if (categoryRepository.isEmpty()) {
-            seedCategories();
-        }
-        if (shopItemRepository.isEmpty()) {
-            seedItems();
-        }
+        syncCatalogFromConfig();
     }
 
     public synchronized void reload() {
         economyManager.refresh();
+        syncCatalogFromConfig();
     }
 
     public synchronized List<ShopCategory> getCategories() {
@@ -55,6 +62,10 @@ public final class ShopService {
                 .filter(ShopCategory::isEnabled)
                 .sorted(Comparator.comparingInt(ShopCategory::getSlot))
                 .toList();
+    }
+
+    public synchronized List<ShopCategory> getVisibleCategories(Player player) {
+        return getCategories().stream().filter(category -> canAccessCategory(player, category)).toList();
     }
 
     public synchronized List<ShopCategory> getAllCategories() {
@@ -112,7 +123,11 @@ public final class ShopService {
             if (!item.canAutoRestock(now)) {
                 continue;
             }
-            item.restockToMax();
+            if (item.isRegeneratingStock()) {
+                item.restockIncrement();
+            } else {
+                item.restockToMax();
+            }
             saveItem(item);
             count++;
         }
@@ -169,29 +184,36 @@ public final class ShopService {
 
     public boolean isBuyAvailable(ShopItem item, int amount) {
         return item.isBuyEnabled()
-                && item.getBuyPrice() > 0.0D
+                && getEffectiveBuyPrice(item) > 0.0D
                 && getDisplayStatus(item) == ShopStatus.ACTIVE
                 && item.hasStockForBuy(amount);
     }
 
     public boolean isSellAvailable(ShopItem item) {
         return item.isSellEnabled()
-                && item.getSellPrice() > 0.0D
+                && getEffectiveSellPrice(item) > 0.0D
                 && item.getStatus() != ShopStatus.DISABLED
                 && item.getStatus() != ShopStatus.COMING_SOON;
     }
 
-    public synchronized TransactionResult buy(Player player, ShopItem item, int amount) {
+    public synchronized TransactionResult buy(Player player, ShopItem item, int requestedAmount) {
+        int amount = Math.min(requestedAmount, plugin.getConfigManager().getMaxPerClick());
         if (amount <= 0) {
             return TransactionResult.failure("invalid-action");
         }
 
-        TransactionResult validation = validateBuy(item, amount);
+        TransactionResult throttle = checkThrottle(player, item, amount, true);
+        if (throttle != null) {
+            return throttle;
+        }
+
+        TransactionResult validation = validateBuy(player, item, amount);
         if (validation != null) {
+            debugFailure("buy", player, item, validation.messageKey());
             return validation;
         }
 
-        double totalPrice = item.getBuyPrice() * amount;
+        double totalPrice = getEffectiveBuyPriceFor(player, item) * amount;
         if (!economyManager.has(player, totalPrice)) {
             return TransactionResult.failure("insufficient-funds", Map.of(
                     "amount", formatPrice(totalPrice),
@@ -211,6 +233,9 @@ public final class ShopService {
             saveItem(item);
         }
 
+        recordDemand(item, amount);
+        logTransaction("BUY", player, item, amount, totalPrice);
+
         return TransactionResult.success("bought-item", Map.of(
                 "amount", String.valueOf(amount),
                 "item", item.getDisplayName(),
@@ -219,13 +244,20 @@ public final class ShopService {
         ));
     }
 
-    public synchronized TransactionResult sell(Player player, ShopItem item, int amount) {
+    public synchronized TransactionResult sell(Player player, ShopItem item, int requestedAmount) {
+        int amount = Math.min(requestedAmount, plugin.getConfigManager().getMaxPerClick());
         if (amount <= 0) {
             return TransactionResult.failure("invalid-action");
         }
 
+        TransactionResult throttle = checkThrottle(player, item, amount, false);
+        if (throttle != null) {
+            return throttle;
+        }
+
         TransactionResult validation = validateSell(item);
         if (validation != null) {
+            debugFailure("sell", player, item, validation.messageKey());
             return validation;
         }
         if (countSellableItems(player, item) < amount) {
@@ -252,7 +284,22 @@ public final class ShopService {
             ));
         }
 
-        return completeSell(player, item, sellAmount);
+        int capped = Math.min(sellAmount, plugin.getConfigManager().getMaxPerClick());
+        return completeSell(player, item, capped);
+    }
+
+    public double getEffectiveBuyPrice(ShopItem item) {
+        return applyDynamic(item, item.getBuyPrice());
+    }
+
+    public double getEffectiveBuyPriceFor(Player player, ShopItem item) {
+        double price = getEffectiveBuyPrice(item);
+        double discount = getPlayerDiscount(player);
+        return price * (1.0D - discount);
+    }
+
+    public double getEffectiveSellPrice(ShopItem item) {
+        return applyDynamic(item, item.getSellPrice());
     }
 
     public String formatPrice(double price) {
@@ -278,29 +325,25 @@ public final class ShopService {
 
     public String getBuyDisplay(ShopItem item) {
         if (item.isBuyEnabled() && item.getBuyPrice() > 0.0D) {
-            return "&a" + formatPrice(item.getBuyPrice());
+            return "&a" + formatPrice(getEffectiveBuyPrice(item));
         }
         return "&8Unavailable";
     }
 
     public String getSellDisplay(ShopItem item) {
         if (item.isSellEnabled() && item.getSellPrice() > 0.0D) {
-            return "&a" + formatPrice(item.getSellPrice());
+            return "&a" + formatPrice(getEffectiveSellPrice(item));
         }
         return "&8Unavailable";
     }
 
     public String getStockTypeDisplay(ShopItem item) {
+        if (item.getStockType() == StockType.REGENERATING) {
+            return "&bRegenerating";
+        }
         return item.isStaticStock()
                 ? plugin.getMessageManager().getRaw("stock-type-static")
                 : plugin.getMessageManager().getRaw("stock-type-limited");
-    }
-
-    public String getStockDisplay(ShopItem item) {
-        if (item.isStaticStock()) {
-            return plugin.getMessageManager().getRaw("stock-infinite");
-        }
-        return "&f" + item.getStock();
     }
 
     public String getStockDetailDisplay(ShopItem item) {
@@ -308,15 +351,6 @@ public final class ShopService {
             return plugin.getMessageManager().getRaw("stock-infinite");
         }
         return "&f" + item.getStock() + "&7/&f" + item.getMaxStock();
-    }
-
-    public List<Material> getCategoryMaterialCycle(String categoryKey) {
-        return switch (categoryKey.toLowerCase()) {
-            case "farming" -> List.of(Material.WHEAT, Material.CARROT, Material.POTATO, Material.BEETROOT, Material.SUGAR_CANE);
-            case "mining" -> List.of(Material.COBBLESTONE, Material.COAL, Material.IRON_INGOT, Material.GOLD_INGOT, Material.DIAMOND);
-            case "mobdrops" -> List.of(Material.ROTTEN_FLESH, Material.BONE, Material.STRING, Material.GUNPOWDER, Material.SPIDER_EYE);
-            default -> List.of(Material.CHEST, Material.STONE, Material.EMERALD);
-        };
     }
 
     public List<String> getCategoryKeys() {
@@ -336,7 +370,7 @@ public final class ShopService {
         return builder.toString();
     }
 
-    private TransactionResult validateBuy(ShopItem item, int amount) {
+    private TransactionResult validateBuy(Player player, ShopItem item, int amount) {
         if (!economyManager.isAvailable()) {
             return TransactionResult.failure("shop-unavailable");
         }
@@ -351,10 +385,13 @@ public final class ShopService {
         if (status == ShopStatus.DISABLED) {
             return TransactionResult.failure("item-disabled");
         }
-        if (!item.isBuyEnabled() || item.getBuyPrice() <= 0.0D) {
+        if (!item.isBuyEnabled() || getEffectiveBuyPrice(item) <= 0.0D) {
             return TransactionResult.failure("buy-disabled");
         }
-        if (!item.hasStockForBuy(amount)) {
+        if (!player.hasPermission("shop.bypass.stock") && !item.hasStockForBuy(amount)) {
+            if (plugin.getConfigManager().logStockIssues()) {
+                plugin.getLogger().info("Stock blocked buy for " + item.getId() + " remaining=" + item.getStock());
+            }
             return TransactionResult.failure("insufficient-stock", Map.of(
                     "stock", String.valueOf(item.getStock()),
                     "item", item.getDisplayName()
@@ -373,19 +410,22 @@ public final class ShopService {
         if (item.getStatus() == ShopStatus.DISABLED) {
             return TransactionResult.failure("item-disabled");
         }
-        if (!item.isSellEnabled() || item.getSellPrice() <= 0.0D) {
+        if (!item.isSellEnabled() || getEffectiveSellPrice(item) <= 0.0D) {
             return TransactionResult.failure("sell-disabled");
         }
         return null;
     }
 
     private TransactionResult completeSell(Player player, ShopItem item, int amount) {
-        double totalPrice = item.getSellPrice() * amount;
+        double totalPrice = getEffectiveSellPrice(item) * amount;
         removeMaterial(player.getInventory(), item.getMaterial(), amount);
         if (!economyManager.deposit(player, totalPrice).transactionSuccess()) {
             player.getInventory().addItem(new ItemStack(item.getMaterial(), amount));
             return TransactionResult.failure("shop-unavailable");
         }
+
+        recordSupply(item, amount);
+        logTransaction("SELL", player, item, amount, totalPrice);
 
         return TransactionResult.success("sold-item", Map.of(
                 "amount", String.valueOf(amount),
@@ -394,36 +434,22 @@ public final class ShopService {
         ));
     }
 
-    private void seedCategories() {
-        List<ShopCategory> categories = List.of(
-                new ShopCategory("farming", "&aFarming", Material.WHEAT, 11, true),
-                new ShopCategory("mining", "&7Mining", Material.IRON_PICKAXE, 13, true),
-                new ShopCategory("mobdrops", "&cMob Drops", Material.BONE, 15, true)
-        );
-        categories.forEach(categoryRepository::save);
-    }
+    private void syncCatalogFromConfig() {
+        ShopCatalogLoader.LoadedCatalog loadedCatalog = catalogLoader.loadCatalog();
+        shopItemRepository.deleteAll();
+        categoryRepository.deleteAll();
+        dynamicState.clear();
 
-    private void seedItems() {
-        List<ShopItem> items = new ArrayList<>();
-        items.add(new ShopItem(0, Material.WHEAT, "&eWheat Bundle", "farming", 10, 16.0D, 8.0D, false, true,
-                StockType.STATIC, 0, 256, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Basic farm produce.", "&7Stable sell value for early economy.")));
-        items.add(new ShopItem(0, Material.CARROT, "&6Carrots", "farming", 12, 20.0D, 9.5D, false, true,
-                StockType.STATIC, 0, 256, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Bulk carrots for fast turnover.")));
-        items.add(new ShopItem(0, Material.COBBLESTONE, "&7Cobblestone", "mining", 10, 12.0D, 4.0D, false, true,
-                StockType.STATIC, 0, 512, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Useful for quarry-heavy servers.")));
-        items.add(new ShopItem(0, Material.COAL, "&8Coal", "mining", 12, 32.0D, 14.0D, true, true,
-                StockType.LIMITED, 96, 128, true, 1800L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Limited stock example.", "&7Buying reduces remaining stock.")));
-        items.add(new ShopItem(0, Material.ROTTEN_FLESH, "&2Rotten Flesh", "mobdrops", 10, 10.0D, 3.0D, false, true,
-                StockType.STATIC, 0, 256, false, 3600L, System.currentTimeMillis(), ShopStatus.ACTIVE,
-                List.of("&7Common mob drop sell item.")));
-        items.add(new ShopItem(0, Material.STRING, "&fString", "mobdrops", 12, 18.0D, 7.0D, true, true,
-                StockType.LIMITED, 64, 128, true, 2400L, System.currentTimeMillis(), ShopStatus.COMING_SOON,
-                List.of("&7Buy path exists but item status keeps it staged.")));
-        items.forEach(this::saveItem);
+        for (ShopCategory category : loadedCatalog.categories()) {
+            categoryRepository.save(category);
+        }
+
+        for (ShopItem item : loadedCatalog.items()) {
+            if (getCategory(item.getCategory()).isEmpty()) {
+                continue;
+            }
+            saveItem(item);
+        }
     }
 
     private int nextOpenSlot(String categoryKey) {
@@ -440,7 +466,17 @@ public final class ShopService {
     }
 
     private Material firstSuggestedMaterial(String categoryKey) {
-        return getCategoryMaterialCycle(categoryKey).get(0);
+        return switch (categoryKey.toLowerCase(Locale.ROOT)) {
+            case "blocks" -> Material.STONE;
+            case "food" -> Material.BREAD;
+            case "farming" -> Material.WHEAT;
+            case "mobdrops" -> Material.BONE;
+            case "nether" -> Material.NETHERRACK;
+            case "end" -> Material.END_STONE;
+            case "utility" -> Material.TORCH;
+            case "combat" -> Material.ARROW;
+            default -> Material.CHEST;
+        };
     }
 
     private void validateItem(ShopItem item) {
@@ -449,12 +485,9 @@ public final class ShopService {
         item.setSlot(Math.max(0, Math.min(53, item.getSlot())));
         item.setMaxStock(Math.max(1, item.getMaxStock()));
         item.setRestockInterval(Math.max(60L, item.getRestockInterval()));
+        item.setRestockAmount(Math.max(1, item.getRestockAmount()));
 
-        if (!plugin.getConfigManager().allowSellAboveBuy()
-                && item.isBuyEnabled()
-                && item.isSellEnabled()
-                && item.getBuyPrice() > 0.0D
-                && item.getSellPrice() > item.getBuyPrice()) {
+        if (item.isBuyEnabled() && item.isSellEnabled() && item.getBuyPrice() > 0.0D && item.getSellPrice() >= item.getBuyPrice()) {
             item.setSellPrice(Math.max(0.0D, item.getBuyPrice() - 0.01D));
         }
 
@@ -514,5 +547,91 @@ public final class ShopService {
             remaining -= taken;
         }
         inventory.setStorageContents(contents);
+    }
+
+    private boolean canAccessCategory(Player player, ShopCategory category) {
+        if (category.isAdminOnly() && !player.hasPermission("wobble.shop.admin")) {
+            return false;
+        }
+        if (category.getPermission() != null && !category.getPermission().isBlank() && !player.hasPermission(category.getPermission())) {
+            return false;
+        }
+        return player.hasPermission("shop.category." + category.getKey()) || !plugin.getConfigManager().getConfig().getBoolean("categories.require-specific-permission", false);
+    }
+
+    private double getPlayerDiscount(Player player) {
+        double best = 0.0D;
+        for (Map.Entry<String, Double> entry : plugin.getConfigManager().getDiscountGroups().entrySet()) {
+            if (player.hasPermission("shop.discount." + entry.getKey())) {
+                best = Math.max(best, entry.getValue());
+            }
+        }
+        return best;
+    }
+
+    private String key(Player player, ShopItem item) {
+        return player.getUniqueId() + ":" + item.getId();
+    }
+
+    private TransactionResult checkThrottle(Player player, ShopItem item, int amount, boolean buying) {
+        String key = key(player, item);
+        long now = System.currentTimeMillis();
+        long last = cooldownTracker.getOrDefault(key, 0L);
+        if (now - last < plugin.getConfigManager().getCooldownMillis()) {
+            return TransactionResult.failure("invalid-action");
+        }
+        cooldownTracker.put(key, now);
+
+        int limit = plugin.getConfigManager().getDailyLimit(String.valueOf(item.getId()));
+        if (limit <= 0) {
+            return null;
+        }
+
+        String dayKey = LocalDate.now() + ":" + key + ":" + (buying ? "buy" : "sell");
+        int used = dailyTracker.getOrDefault(dayKey, 0);
+        if (used + amount > limit) {
+            return TransactionResult.failure("invalid-action");
+        }
+        dailyTracker.put(dayKey, used + amount);
+        return null;
+    }
+
+    private void recordDemand(ShopItem item, int amount) {
+        PriceState state = dynamicState.computeIfAbsent(item.getId(), id -> new PriceState());
+        state.bought += amount;
+    }
+
+    private void recordSupply(ShopItem item, int amount) {
+        PriceState state = dynamicState.computeIfAbsent(item.getId(), id -> new PriceState());
+        state.sold += amount;
+    }
+
+    private double applyDynamic(ShopItem item, double basePrice) {
+        if (!plugin.getConfigManager().isDynamicPricingEnabled() || basePrice <= 0.0D) {
+            return basePrice;
+        }
+        PriceState state = dynamicState.computeIfAbsent(item.getId(), id -> new PriceState());
+        double delta = (state.bought - state.sold) * plugin.getConfigManager().getDynamicStep() * 0.01D;
+        double multiplier = Math.max(plugin.getConfigManager().getDynamicMinMultiplier(),
+                Math.min(plugin.getConfigManager().getDynamicMaxMultiplier(), 1.0D + delta));
+        return basePrice * multiplier;
+    }
+
+    private void logTransaction(String type, Player player, ShopItem item, int amount, double price) {
+        if (plugin.getConfigManager().logTransactions()) {
+            plugin.getLogger().info("[ShopTx] " + type + " player=" + player.getName() + " item=" + item.getId()
+                    + " amount=" + amount + " total=" + PRICE_FORMAT.format(price));
+        }
+    }
+
+    private void debugFailure(String action, Player player, ShopItem item, String reason) {
+        if (plugin.getConfigManager().logFailures()) {
+            plugin.getLogger().info("[ShopFail] action=" + action + " player=" + player.getName() + " item=" + item.getId() + " reason=" + reason);
+        }
+    }
+
+    private static final class PriceState {
+        int bought;
+        int sold;
     }
 }

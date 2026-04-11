@@ -22,7 +22,7 @@ public final class ShopCommand implements CommandExecutor {
                 plugin.getMessageManager().send(sender, "player-only");
                 return true;
             }
-            if (!player.hasPermission("wobble.shop.use")) {
+            if (!player.hasPermission("wobble.shop.use") && !player.hasPermission("shop.use")) {
                 plugin.getMessageManager().send(player, "no-permission");
                 return true;
             }
@@ -59,14 +59,20 @@ public final class ShopCommand implements CommandExecutor {
                     plugin.getMessageManager().send(sender, "no-permission");
                     return true;
                 }
-                if (args.length == 1) {
+                if (args.length == 1 || args[1].equalsIgnoreCase("all")) {
                     int count = plugin.getShopService().restockAll();
                     sendRestockResult(sender, count, "restocked-all", java.util.Map.of("count", String.valueOf(count)));
                     return true;
                 }
 
-                String target = args[1];
-                ShopCategory category = plugin.getShopService().getCategory(target).orElse(null);
+                if (args[1].equalsIgnoreCase("category") && args.length >= 3) {
+                    return restockCategory(sender, args[2]);
+                }
+                if (args[1].equalsIgnoreCase("item") && args.length >= 3) {
+                    return restockItem(sender, args[2]);
+                }
+
+                ShopCategory category = plugin.getShopService().getCategory(args[1]).orElse(null);
                 if (category != null) {
                     int count = plugin.getShopService().restockCategory(category.getKey());
                     sendRestockResult(sender, count, "restocked-category", java.util.Map.of(
@@ -76,22 +82,10 @@ public final class ShopCommand implements CommandExecutor {
                     return true;
                 }
 
-                try {
-                    int itemId = Integer.parseInt(target);
-                    boolean restocked = plugin.getShopService().restockItem(itemId);
-                    if (restocked) {
-                        plugin.getMessageManager().send(sender, "restocked-item", java.util.Map.of("id", String.valueOf(itemId)));
-                    } else {
-                        plugin.getMessageManager().send(sender, "restock-none");
-                    }
-                    return true;
-                } catch (NumberFormatException ignored) {
-                    plugin.getMessageManager().send(sender, "restock-target-missing", java.util.Map.of("target", target));
-                    return true;
-                }
+                return restockItem(sender, args[1]);
             }
             default -> {
-                if (sender instanceof Player player && player.hasPermission("wobble.shop.use")) {
+                if (sender instanceof Player player && (player.hasPermission("wobble.shop.use") || player.hasPermission("shop.use"))) {
                     plugin.getMessageManager().send(player, "shop-opened");
                     plugin.getGuiManager().openMain(player);
                     return true;
@@ -99,6 +93,36 @@ public final class ShopCommand implements CommandExecutor {
                 plugin.getMessageManager().send(sender, "no-permission");
                 return true;
             }
+        }
+    }
+
+    private boolean restockCategory(CommandSender sender, String key) {
+        ShopCategory category = plugin.getShopService().getCategory(key).orElse(null);
+        if (category == null) {
+            plugin.getMessageManager().send(sender, "restock-target-missing", java.util.Map.of("target", key));
+            return true;
+        }
+        int count = plugin.getShopService().restockCategory(category.getKey());
+        sendRestockResult(sender, count, "restocked-category", java.util.Map.of(
+                "count", String.valueOf(count),
+                "category", category.getDisplayName()
+        ));
+        return true;
+    }
+
+    private boolean restockItem(CommandSender sender, String token) {
+        try {
+            int itemId = Integer.parseInt(token);
+            boolean restocked = plugin.getShopService().restockItem(itemId);
+            if (restocked) {
+                plugin.getMessageManager().send(sender, "restocked-item", java.util.Map.of("id", String.valueOf(itemId)));
+            } else {
+                plugin.getMessageManager().send(sender, "restock-none");
+            }
+            return true;
+        } catch (NumberFormatException ignored) {
+            plugin.getMessageManager().send(sender, "restock-target-missing", java.util.Map.of("target", token));
+            return true;
         }
     }
 

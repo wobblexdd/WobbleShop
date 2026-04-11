@@ -1,0 +1,338 @@
+items:
+  stone:
+    category: blocks
+    material: STONE
+    display-name: "&fStone"
+    slot: 10
+    buy: { enabled: true, price: 6.0 }
+    sell: { enabled: true, price: 1.5 }
+    enabled: true
+    hidden: false
+    lore: ["&7Reliable starter building block."]
+    min-progression-comment: "Early game"
+    stock: { type: INFINITE, max: 1024 }
+
+  oak_log:
+    category: blocks
+    material: OAK_LOG
+    display-name: "&fOak Log"
+    slot: 11
+    buy: { enabled: true, price: 18.0 }
+    sell: { enabled: true, price: 5.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Useful when players start base building."]
+    min-progression-comment: "Early game"
+    stock: { type: INFINITE, max: 1024 }
+
+  glass:
+    category: blocks
+    material: GLASS
+    display-name: "&fGlass"
+    slot: 12
+    buy: { enabled: true, price: 20.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Convenience buy for builders."]
+    stock: { type: INFINITE, max: 1024 }
+
+  bread:
+    category: food
+    material: BREAD
+    display-name: "&6Bread"
+    slot: 10
+    buy: { enabled: true, price: 12.0 }
+    sell: { enabled: true, price: 2.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Cheap emergency food."]
+    min-progression-comment: "Early game"
+    stock: { type: INFINITE, max: 1024 }
+
+  cooked_beef:
+    category: food
+    material: COOKED_BEEF
+    display-name: "&6Steak"
+    slot: 11
+    buy: { enabled: true, price: 42.0 }
+    sell: { enabled: true, price: 10.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Good mid-game hunger refill."]
+    stock: { type: INFINITE, max: 1024 }
+
+  golden_carrot:
+    category: food
+    material: GOLDEN_CARROT
+    display-name: "&6Golden Carrot"
+    slot: 12
+    buy: { enabled: true, price: 95.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Priced high to avoid replacing farms."]
+    min-progression-comment: "Mid game"
+    stock: { type: REGENERATING, amount: 96, max: 192, restock-enabled: true, restock-interval-seconds: 1800, restock-amount: 16 }
+
+  wheat:
+    category: farming
+    material: WHEAT
+    display-name: "&eWheat"
+    slot: 10
+    buy: { enabled: false, price: 0.0 }
+    sell: { enabled: true, price: 3.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Baseline farm sell item."]
+    min-progression-comment: "Early game"
+    stock: { type: INFINITE, max: 1024 }
+
+  carrot:
+    category: farming
+    material: CARROT
+    display-name: "&6Carrot"
+    slot: 11
+    buy: { enabled: false, price: 0.0 }
+    sell: { enabled: true, price: 2.5 }
+    enabled: true
+    hidden: false
+    lore: ["&7Sell-only to reward farming loops."]
+    stock: { type: INFINITE, max: 1024 }
+
+  sugar_cane:
+    category: farming
+    material: SUGAR_CANE
+    display-name: "&aSugar Cane"
+    slot: 12
+    buy: { enabled: true, price: 20.0 }
+    sell: { enabled: true, price: 4.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Useful for books and rockets economy."]
+    stock: { type: INFINITE, max: 1024 }
+
+  bone:
+    category: mobdrops
+    material: BONE
+    display-name: "&fBone"
+    slot: 10
+    buy: { enabled: true, price: 24.0 }
+    sell: { enabled: true, price: 6.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Common skeleton drop."]
+    stock: { type: REGENERATING, amount: 128, max: 256, restock-enabled: true, restock-interval-seconds: 2400, restock-amount: 24 }
+
+  gunpowder:
+    category: mobdrops
+    material: GUNPOWDER
+    display-name: "&7Gunpowder"
+    slot: 11
+    buy: { enabled: true, price: 58.0 }
+    sell: { enabled: true, price: 14.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Supports rockets without flooding market."]
+    min-progression-comment: "Mid game"
+    stock: { type: LIMITED, amount: 192, max: 192, restock-enabled: true, restock-interval-seconds: 2400 }
+
+  string:
+    category: mobdrops
+    material: STRING
+    display-name: "&fString"
+    slot: 12
+    buy: { enabled: true, price: 26.0 }
+    sell: { enabled: true, price: 6.5 }
+    enabled: true
+    hidden: false
+    lore: ["&7Useful for wool, bows, and trades."]
+    stock: { type: INFINITE, max: 1024 }
+
+  quartz:
+    category: nether
+    material: QUARTZ
+    display-name: "&fNether Quartz"
+    slot: 10
+    buy: { enabled: true, price: 40.0 }
+    sell: { enabled: true, price: 10.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Mid-game redstone/building support."]
+    min-progression-comment: "Mid game"
+    stock: { type: LIMITED, amount: 256, max: 256, restock-enabled: true, restock-interval-seconds: 3600 }
+
+  blaze_rod:
+    category: nether
+    material: BLAZE_ROD
+    display-name: "&6Blaze Rod"
+    slot: 11
+    buy: { enabled: true, price: 220.0 }
+    sell: { enabled: true, price: 45.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Convenience option but intentionally expensive."]
+    min-progression-comment: "Mid/Late game"
+    stock: { type: LIMITED, amount: 96, max: 96, restock-enabled: true, restock-interval-seconds: 5400 }
+
+  glowstone_dust:
+    category: nether
+    material: GLOWSTONE_DUST
+    display-name: "&eGlowstone Dust"
+    slot: 12
+    buy: { enabled: true, price: 24.0 }
+    sell: { enabled: true, price: 6.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Potion/lighting utility resource."]
+    stock: { type: INFINITE, max: 1024 }
+
+  end_stone:
+    category: end
+    material: END_STONE
+    display-name: "&fEnd Stone"
+    slot: 10
+    buy: { enabled: true, price: 28.0 }
+    sell: { enabled: true, price: 7.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Building material for post-dragon players."]
+    min-progression-comment: "Late game"
+    stock: { type: LIMITED, amount: 320, max: 320, restock-enabled: true, restock-interval-seconds: 3600 }
+
+  chorus_fruit:
+    category: end
+    material: CHORUS_FRUIT
+    display-name: "&dChorus Fruit"
+    slot: 11
+    buy: { enabled: true, price: 60.0 }
+    sell: { enabled: true, price: 15.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Niche utility; not a progression skip."]
+    stock: { type: LIMITED, amount: 128, max: 128, restock-enabled: true, restock-interval-seconds: 3600 }
+
+  shulker_shell:
+    category: end
+    material: SHULKER_SHELL
+    display-name: "&5Shulker Shell"
+    slot: 12
+    buy: { enabled: true, price: 950.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Very expensive safety valve, not primary source."]
+    min-progression-comment: "Late game"
+    stock: { type: LIMITED, amount: 32, max: 32, restock-enabled: true, restock-interval-seconds: 7200 }
+
+  torch:
+    category: utility
+    material: TORCH
+    display-name: "&eTorch"
+    slot: 10
+    buy: { enabled: true, price: 8.0 }
+    sell: { enabled: true, price: 1.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Basic utility item."]
+    stock: { type: INFINITE, max: 1024 }
+
+  name_tag:
+    category: utility
+    material: NAME_TAG
+    display-name: "&bName Tag"
+    slot: 11
+    buy: { enabled: true, price: 350.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7QoL purchase, priced as sink."]
+    stock: { type: LIMITED, amount: 64, max: 64, restock-enabled: true, restock-interval-seconds: 3600 }
+
+  experience_bottle:
+    category: utility
+    material: EXPERIENCE_BOTTLE
+    display-name: "&aBottle o' Enchanting"
+    slot: 12
+    buy: { enabled: true, price: 150.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Money sink for enchanting support."]
+    min-progression-comment: "Mid game"
+    stock: { type: LIMITED, amount: 128, max: 128, restock-enabled: true, restock-interval-seconds: 1800 }
+
+  arrow:
+    category: combat
+    material: ARROW
+    display-name: "&fArrow"
+    slot: 10
+    buy: { enabled: true, price: 4.0 }
+    sell: { enabled: true, price: 0.8 }
+    enabled: true
+    hidden: false
+    lore: ["&7Combat supply baseline."]
+    stock: { type: INFINITE, max: 1024 }
+
+  shield:
+    category: combat
+    material: SHIELD
+    display-name: "&7Shield"
+    slot: 11
+    buy: { enabled: true, price: 120.0 }
+    sell: { enabled: true, price: 30.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Defensive utility, not overpowered."]
+    stock: { type: INFINITE, max: 256 }
+
+  iron_sword:
+    category: combat
+    material: IRON_SWORD
+    display-name: "&fIron Sword"
+    slot: 12
+    buy: { enabled: true, price: 180.0 }
+    sell: { enabled: true, price: 45.0 }
+    enabled: true
+    hidden: false
+    lore: ["&7Entry combat gear only."]
+    stock: { type: INFINITE, max: 256 }
+
+  elytra:
+    category: special
+    material: ELYTRA
+    display-name: "&dElytra"
+    slot: 10
+    buy: { enabled: true, price: 25000.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: false
+    hidden: true
+    lore: ["&cDisabled by default for progression fairness."]
+    min-progression-comment: "Never in normal shop"
+    stock: { type: LIMITED, amount: 0, max: 4, restock-enabled: false, restock-interval-seconds: 86400 }
+
+  mace:
+    category: special
+    material: MACE
+    display-name: "&dMace"
+    slot: 11
+    buy: { enabled: true, price: 50000.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: false
+    hidden: true
+    lore: ["&cDisabled by default for progression fairness."]
+    min-progression-comment: "Never in normal shop"
+    stock: { type: LIMITED, amount: 0, max: 2, restock-enabled: false, restock-interval-seconds: 86400 }
+
+  dragon_head:
+    category: special
+    material: DRAGON_HEAD
+    display-name: "&5Dragon Head"
+    slot: 12
+    buy: { enabled: true, price: 15000.0 }
+    sell: { enabled: false, price: 0.0 }
+    enabled: false
+    hidden: true
+    lore: ["&cDisabled by default for progression fairness."]
+    min-progression-comment: "Never in normal shop"
+    stock: { type: LIMITED, amount: 0, max: 8, restock-enabled: false, restock-interval-seconds: 86400 }

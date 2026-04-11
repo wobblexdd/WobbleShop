@@ -84,6 +84,16 @@ public final class ShopItemRepository {
         }
     }
 
+
+    public synchronized void deleteAll() {
+        String sql = "DELETE FROM shop_items";
+        try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Could not clear shop items.", exception);
+        }
+    }
+
     public synchronized boolean isEmpty() {
         String sql = "SELECT COUNT(*) FROM shop_items";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
@@ -98,8 +108,8 @@ public final class ShopItemRepository {
         String sql = """
                 INSERT INTO shop_items (
                     material, display_name, category_key, slot, buy_price, sell_price, buy_enabled, sell_enabled,
-                    stock_type, stock, max_stock, restock_enabled, restock_interval, last_restock, status, lore
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    stock_type, stock, max_stock, restock_enabled, restock_interval, restock_amount, last_restock, status, lore
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
         try (PreparedStatement statement = database.getConnection()
                 .prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -121,12 +131,12 @@ public final class ShopItemRepository {
                 UPDATE shop_items SET
                     material = ?, display_name = ?, category_key = ?, slot = ?, buy_price = ?, sell_price = ?,
                     buy_enabled = ?, sell_enabled = ?, stock_type = ?, stock = ?, max_stock = ?,
-                    restock_enabled = ?, restock_interval = ?, last_restock = ?, status = ?, lore = ?
+                    restock_enabled = ?, restock_interval = ?, restock_amount = ?, last_restock = ?, status = ?, lore = ?
                 WHERE id = ?
                 """;
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             bind(statement, item);
-            statement.setInt(17, item.getId());
+            statement.setInt(18, item.getId());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Could not update shop item " + item.getId(), exception);
@@ -147,9 +157,10 @@ public final class ShopItemRepository {
         statement.setInt(11, item.getMaxStock());
         statement.setInt(12, item.isRestockEnabled() ? 1 : 0);
         statement.setLong(13, item.getRestockInterval());
-        statement.setLong(14, item.getLastRestock());
-        statement.setString(15, item.getStatus().name());
-        statement.setString(16, String.join("\n", item.getLore()));
+        statement.setInt(14, item.getRestockAmount());
+        statement.setLong(15, item.getLastRestock());
+        statement.setString(16, item.getStatus().name());
+        statement.setString(17, String.join("\n", item.getLore()));
     }
 
     private ShopItem map(ResultSet resultSet) throws SQLException {
@@ -174,6 +185,7 @@ public final class ShopItemRepository {
                 resultSet.getInt("max_stock"),
                 resultSet.getInt("restock_enabled") == 1,
                 resultSet.getLong("restock_interval"),
+                resultSet.getInt("restock_amount"),
                 resultSet.getLong("last_restock"),
                 ShopStatus.valueOf(resultSet.getString("status")),
                 lore
