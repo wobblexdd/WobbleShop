@@ -353,6 +353,20 @@ public final class ShopService {
         return "&f" + item.getStock() + "&7/&f" + item.getMaxStock();
     }
 
+    public List<Material> getCategoryMaterialCycle(String categoryKey) {
+        return switch (categoryKey.toLowerCase(Locale.ROOT)) {
+            case "blocks" -> List.of(Material.STONE, Material.COBBLESTONE, Material.OAK_LOG, Material.GLASS, Material.COBBLED_DEEPSLATE);
+            case "food" -> List.of(Material.BREAD, Material.COOKED_BEEF, Material.BAKED_POTATO, Material.COOKED_CHICKEN, Material.GOLDEN_CARROT);
+            case "farming" -> List.of(Material.WHEAT, Material.CARROT, Material.POTATO, Material.BEETROOT, Material.SUGAR_CANE);
+            case "mobdrops" -> List.of(Material.ROTTEN_FLESH, Material.BONE, Material.STRING, Material.GUNPOWDER, Material.SPIDER_EYE);
+            case "nether" -> List.of(Material.NETHERRACK, Material.QUARTZ, Material.GLOWSTONE_DUST, Material.BLAZE_ROD, Material.MAGMA_CREAM);
+            case "end" -> List.of(Material.END_STONE, Material.CHORUS_FRUIT, Material.POPPED_CHORUS_FRUIT, Material.SHULKER_SHELL, Material.ENDER_PEARL);
+            case "utility" -> List.of(Material.TORCH, Material.LANTERN, Material.BOOK, Material.EXPERIENCE_BOTTLE, Material.NAME_TAG);
+            case "combat" -> List.of(Material.ARROW, Material.SHIELD, Material.IRON_SWORD, Material.CROSSBOW, Material.TURTLE_HELMET);
+            default -> List.of(Material.CHEST, Material.STONE, Material.EMERALD);
+        };
+    }
+
     public List<String> getCategoryKeys() {
         return getAllCategories().stream().map(ShopCategory::getKey).toList();
     }
