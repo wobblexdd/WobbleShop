@@ -9,6 +9,7 @@ import me.wobble.wobbleshop.model.ShopItem;
 import me.wobble.wobbleshop.util.ItemBuilder;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 public final class CategoryGui extends BaseGui {
@@ -50,7 +51,7 @@ public final class CategoryGui extends BaseGui {
                 .build());
         inventory.setItem(49, new ItemBuilder(category.getMaterial())
                 .name(category.getDisplayName())
-                .lore(List.of("&7Browse available shop items."))
+                .lore(List.of("&7Left click: buy x1", "&7Right click: buy stack", "&7Shift click: bulk", "&7Middle click: sell all"))
                 .build());
         inventory.setItem(53, new ItemBuilder(Material.BARRIER)
                 .name("&cClose")
@@ -74,10 +75,37 @@ public final class CategoryGui extends BaseGui {
 
         for (ShopItem item : shopService.getItemsByCategory(category.getKey())) {
             if (item.getSlot() == slot) {
-                guiManager.openItemAction(player, category, item);
+                handleTradeClick(event.getClick(), item);
+                redraw();
                 return;
             }
         }
+    }
+
+    private void handleTradeClick(ClickType clickType, ShopItem item) {
+        int bulk = plugin.getConfigManager().getBulkAmount();
+        if (clickType == ClickType.LEFT) {
+            guiManager.sendResult(player, shopService.buy(player, item, 1));
+            return;
+        }
+        if (clickType == ClickType.RIGHT) {
+            guiManager.sendResult(player, shopService.buy(player, item, item.getMaterial().getMaxStackSize()));
+            return;
+        }
+        if (clickType == ClickType.MIDDLE) {
+            guiManager.sendResult(player, shopService.sellAll(player, item));
+            return;
+        }
+        if (clickType == ClickType.SHIFT_LEFT) {
+            guiManager.sendResult(player, shopService.buy(player, item, bulk));
+            return;
+        }
+        if (clickType == ClickType.SHIFT_RIGHT) {
+            guiManager.sendResult(player, shopService.sell(player, item, bulk));
+            return;
+        }
+
+        guiManager.openItemAction(player, category, item);
     }
 
     private List<String> buildLore(ShopItem item) {
@@ -89,7 +117,9 @@ public final class CategoryGui extends BaseGui {
         lore.add("&7Stock Type: " + shopService.getStockTypeDisplay(item));
         lore.add("&7Stock: " + shopService.getStockDetailDisplay(item));
         lore.add(" ");
-        lore.add("&eClick to open actions");
+        lore.add("&eLClick buy 1 &7| &eRClick buy stack");
+        lore.add("&eShift-L buy bulk &7| &eShift-R sell bulk");
+        lore.add("&eMiddle click sell all");
         return lore;
     }
 }

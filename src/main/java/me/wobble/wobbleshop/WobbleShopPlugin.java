@@ -4,6 +4,7 @@ import me.wobble.wobbleshop.command.ShopCommand;
 import me.wobble.wobbleshop.command.ShopTabCompleter;
 import me.wobble.wobbleshop.config.ConfigManager;
 import me.wobble.wobbleshop.config.MessageManager;
+import me.wobble.wobbleshop.config.ShopCatalogLoader;
 import me.wobble.wobbleshop.listener.InventoryListener;
 import me.wobble.wobbleshop.manager.EconomyManager;
 import me.wobble.wobbleshop.manager.GuiManager;
@@ -25,6 +26,7 @@ public final class WobbleShopPlugin extends JavaPlugin {
     private ShopService shopService;
     private RestockService restockService;
     private GuiManager guiManager;
+    private ShopCatalogLoader catalogLoader;
 
     @Override
     public void onEnable() {
@@ -32,11 +34,13 @@ public final class WobbleShopPlugin extends JavaPlugin {
         this.messageManager = new MessageManager(this);
         this.database = new SQLiteDatabase(this, configManager);
         this.database.initialize();
+        this.catalogLoader = new ShopCatalogLoader(this);
+        this.catalogLoader.ensureDefaults();
 
         CategoryRepository categoryRepository = new CategoryRepository(database);
         ShopItemRepository shopItemRepository = new ShopItemRepository(database);
         this.economyManager = new EconomyManager(this);
-        this.shopService = new ShopService(this, categoryRepository, shopItemRepository, economyManager);
+        this.shopService = new ShopService(this, categoryRepository, shopItemRepository, economyManager, catalogLoader);
         this.shopService.bootstrap();
 
         this.restockService = new RestockService(this, shopService, configManager);

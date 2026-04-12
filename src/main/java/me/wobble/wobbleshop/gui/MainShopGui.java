@@ -17,7 +17,7 @@ public final class MainShopGui extends BaseGui {
 
     @Override
     protected void render() {
-        List<ShopCategory> categories = shopService.getCategories();
+        List<ShopCategory> categories = shopService.getVisibleCategories(player);
         if (categories.isEmpty()) {
             inventory.setItem(13, new ItemBuilder(Material.BARRIER)
                     .name("&cNo Categories Available")
@@ -78,7 +78,7 @@ public final class MainShopGui extends BaseGui {
             return;
         }
 
-        for (ShopCategory category : shopService.getCategories()) {
+        for (ShopCategory category : shopService.getVisibleCategories(player)) {
             if (category.getSlot() == slot) {
                 guiManager.openCategory(player, category);
                 return;

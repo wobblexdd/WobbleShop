@@ -7,7 +7,7 @@ depend: [Vault]
 commands:
   shop:
     description: Opens the WobbleShop GUI.
-    usage: /shop [admin|reload|restock [category|itemId]]
+    usage: /shop [admin|reload|restock [all|category <name>|item <id>]]
     permission: wobble.shop.use
 permissions:
   wobble.shop.use:
@@ -17,4 +17,8 @@ permissions:
   wobble.shop.reload:
     default: op
   wobble.shop.restock:
+    default: op
+  shop.use:
+    default: true
+  shop.bypass.stock:
     default: op

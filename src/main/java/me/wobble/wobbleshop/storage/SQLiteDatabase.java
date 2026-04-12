@@ -35,9 +35,19 @@ public final class SQLiteDatabase implements Database {
                             display_name TEXT NOT NULL,
                             material TEXT NOT NULL,
                             slot INTEGER NOT NULL,
-                            enabled INTEGER NOT NULL
+                            enabled INTEGER NOT NULL,
+                            permission TEXT NOT NULL DEFAULT '',
+                            admin_only INTEGER NOT NULL DEFAULT 0
                         )
                         """);
+                statement.executeUpdate("ALTER TABLE categories ADD COLUMN permission TEXT NOT NULL DEFAULT ''");
+            } catch (SQLException ignored) {
+            }
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE categories ADD COLUMN admin_only INTEGER NOT NULL DEFAULT 0");
+            } catch (SQLException ignored) {
+            }
+            try (Statement statement = connection.createStatement()) {
                 statement.executeUpdate("""
                         CREATE TABLE IF NOT EXISTS shop_items (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,11 +64,16 @@ public final class SQLiteDatabase implements Database {
                             max_stock INTEGER NOT NULL,
                             restock_enabled INTEGER NOT NULL,
                             restock_interval INTEGER NOT NULL,
+                            restock_amount INTEGER NOT NULL DEFAULT 64,
                             last_restock INTEGER NOT NULL,
                             status TEXT NOT NULL,
                             lore TEXT NOT NULL
                         )
                         """);
+            }
+            try (Statement statement = connection.createStatement()) {
+                statement.executeUpdate("ALTER TABLE shop_items ADD COLUMN restock_amount INTEGER NOT NULL DEFAULT 64");
+            } catch (SQLException ignored) {
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("Could not initialize SQLite database.", exception);

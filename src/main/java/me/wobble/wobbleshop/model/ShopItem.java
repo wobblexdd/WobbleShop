@@ -20,13 +20,14 @@ public final class ShopItem {
     private int maxStock;
     private boolean restockEnabled;
     private long restockInterval;
+    private int restockAmount;
     private long lastRestock;
     private ShopStatus status;
     private List<String> lore;
 
     public ShopItem(int id, Material material, String displayName, String category, int slot, double buyPrice,
                     double sellPrice, boolean buyEnabled, boolean sellEnabled, StockType stockType, int stock,
-                    int maxStock, boolean restockEnabled, long restockInterval, long lastRestock,
+                    int maxStock, boolean restockEnabled, long restockInterval, int restockAmount, long lastRestock,
                     ShopStatus status, List<String> lore) {
         this.id = id;
         this.material = material;
@@ -42,6 +43,7 @@ public final class ShopItem {
         this.maxStock = maxStock;
         this.restockEnabled = restockEnabled;
         this.restockInterval = restockInterval;
+        this.restockAmount = restockAmount;
         this.lastRestock = lastRestock;
         this.status = status;
         this.lore = new ArrayList<>(lore);
@@ -59,11 +61,12 @@ public final class ShopItem {
                 10.0D,
                 false,
                 true,
-                StockType.STATIC,
+                StockType.INFINITE,
                 0,
                 256,
                 true,
                 3600L,
+                64,
                 now,
                 ShopStatus.ACTIVE,
                 List.of("&7Freshly added to the shop.", "&7Configure this item in the admin GUI.")
@@ -109,6 +112,13 @@ public final class ShopItem {
         }
     }
 
+    public void restockIncrement() {
+        if (isLimitedStock()) {
+            stock = Math.min(maxStock, stock + Math.max(1, restockAmount));
+            lastRestock = System.currentTimeMillis();
+        }
+    }
+
     public ShopStatus getResolvedStatus() {
         if (status == ShopStatus.ACTIVE && isLimitedStock() && stock <= 0) {
             return ShopStatus.OUT_OF_STOCK;
@@ -117,11 +127,15 @@ public final class ShopItem {
     }
 
     public boolean isStaticStock() {
-        return stockType == StockType.STATIC;
+        return stockType == StockType.INFINITE;
     }
 
     public boolean isLimitedStock() {
-        return stockType == StockType.LIMITED;
+        return stockType == StockType.LIMITED || stockType == StockType.REGENERATING;
+    }
+
+    public boolean isRegeneratingStock() {
+        return stockType == StockType.REGENERATING;
     }
 
     public int getRemainingCapacity() {
@@ -238,6 +252,14 @@ public final class ShopItem {
 
     public void setRestockInterval(long restockInterval) {
         this.restockInterval = restockInterval;
+    }
+
+    public int getRestockAmount() {
+        return restockAmount;
+    }
+
+    public void setRestockAmount(int restockAmount) {
+        this.restockAmount = restockAmount;
     }
 
     public long getLastRestock() {
