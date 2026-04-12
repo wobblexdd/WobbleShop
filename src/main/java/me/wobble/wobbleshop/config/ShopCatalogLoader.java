@@ -1,7 +1,6 @@
 package me.wobble.wobbleshop.config;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -53,7 +52,9 @@ public final class ShopCatalogLoader {
             String displayName = categorySection.getString("display-name", prettifyKey(key));
             int slot = clamp(categorySection.getInt("slot", 10), 0, 26);
             boolean enabled = categorySection.getBoolean("enabled", true);
-            categories.add(new ShopCategory(key.toLowerCase(Locale.ROOT), displayName, material, slot, enabled));
+            String permission = categorySection.getString("permission", "").trim();
+            boolean adminOnly = categorySection.getBoolean("admin-only", false);
+            categories.add(new ShopCategory(key.toLowerCase(Locale.ROOT), displayName, material, slot, enabled, permission, adminOnly));
         }
 
         return categories;
@@ -92,12 +93,16 @@ public final class ShopCatalogLoader {
             boolean sellEnabled = sellSection != null && sellSection.getBoolean("enabled", false);
             double sellPrice = sellSection != null ? Math.max(0.0D, sellSection.getDouble("price", 0.0D)) : 0.0D;
 
+            buyPrice *= plugin.getConfigManager().getGlobalBuyMultiplier() * plugin.getConfigManager().getCategoryBuyMultiplier(category);
+            sellPrice *= plugin.getConfigManager().getGlobalSellMultiplier() * plugin.getConfigManager().getCategorySellMultiplier(category);
+
             ConfigurationSection stockSection = itemSection.getConfigurationSection("stock");
-            StockType stockType = parseStockType(stockSection == null ? "STATIC" : stockSection.getString("type", "STATIC"));
-            int stock = stockType == StockType.STATIC ? 0 : Math.max(0, stockSection.getInt("amount", stockSection.getInt("max", 64)));
+            StockType stockType = parseStockType(stockSection == null ? "INFINITE" : stockSection.getString("type", "INFINITE"));
             int maxStock = Math.max(1, stockSection == null ? 256 : stockSection.getInt("max", 256));
-            boolean restockEnabled = stockType == StockType.LIMITED && stockSection != null && stockSection.getBoolean("restock-enabled", false);
+            int stock = stockType.isInfinite() ? 0 : Math.max(0, stockSection.getInt("amount", maxStock));
+            boolean restockEnabled = stockType.isLimitedType() && stockSection != null && stockSection.getBoolean("restock-enabled", stockType.isRegenerating());
             long restockInterval = Math.max(60L, stockSection == null ? 3600L : stockSection.getLong("restock-interval-seconds", 3600L));
+            int restockAmount = Math.max(1, stockSection == null ? maxStock : stockSection.getInt("restock-amount", maxStock));
 
             ShopStatus status = enabled
                     ? parseStatus(itemSection.getString("status", "ACTIVE"))
@@ -107,6 +112,13 @@ public final class ShopCatalogLoader {
             String progression = itemSection.getString("min-progression-comment", "").trim();
             if (!progression.isEmpty()) {
                 lore.add("&8Progression: " + progression);
+            }
+
+            if (buyEnabled && sellEnabled && sellPrice >= buyPrice && buyPrice > 0.0D) {
+                sellPrice = Math.max(0.0D, buyPrice - 0.01D);
+                if (plugin.getConfigManager().isDebugEnabled()) {
+                    plugin.getLogger().warning("[ShopCatalog] Clamped sell>=buy for " + itemKey);
+                }
             }
 
             items.add(new ShopItem(
@@ -124,6 +136,7 @@ public final class ShopCatalogLoader {
                     maxStock,
                     restockEnabled,
                     restockInterval,
+                    restockAmount,
                     now,
                     status,
                     lore
@@ -154,14 +167,7 @@ public final class ShopCatalogLoader {
     }
 
     private StockType parseStockType(String value) {
-        if (value == null) {
-            return StockType.STATIC;
-        }
-        try {
-            return StockType.valueOf(value.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return StockType.STATIC;
-        }
+        return StockType.fromStorage(value);
     }
 
     private ShopStatus parseStatus(String value) {

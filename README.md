@@ -1,60 +1,47 @@
 # WobbleShop
 
-Config-driven GUI shop plugin for Paper 1.21.x servers using Vault economy.
+Production-ready, config-driven GUI shop for Paper 1.21.x with Vault economy.
 
-## Goals
+## Core design
 
-- Baseline shop for SMP progression (not pay-to-win)
-- Easy long-term rebalancing without code changes
-- Conservative defaults that do **not** replace player trading/auction
-- Category + item definitions in YAML files
+- SMP progression-safe defaults (not pay-to-win)
+- Fully config-rebalanceable categories and items
+- Buy-only / sell-only / buy+sell / disabled / hidden items
+- Infinite, limited, and regenerating stock modes
+- Optional dynamic pricing and anti-abuse controls
 
 ## Requirements
 
 - Java 21
 - Paper 1.21.x
-- Vault
-- Economy plugin (EssentialsX economy supported via Vault)
-
-## Build
-
-```bash
-mvn clean package
-```
-
-## Core files
-
-- `config.yml`: global settings (titles, sounds, restock task, economy guards)
-- `messages.yml`: translatable messages
-- `categories.yml`: category layout/icons/slots/enabled flags
-- `shop-items.yml`: all shop items, prices, buy/sell modes, stock model, visibility
+- Vault + an economy provider (EssentialsX economy supported)
 
 ## Commands
 
-- `/shop` - open player shop
-- `/shop admin` - admin GUI tools
-- `/shop reload` - reload config + resync catalog from YAML
-- `/shop restock [category|itemId]` - manual restock for limited items
+- `/shop`
+- `/shop admin`
+- `/shop reload`
+- `/shop restock all`
+- `/shop restock category <name>`
+- `/shop restock item <id>`
 
 ## Permissions
 
-- `wobble.shop.use`
+- `wobble.shop.use` / `shop.use`
 - `wobble.shop.admin`
 - `wobble.shop.reload`
 - `wobble.shop.restock`
+- `shop.category.<name>`
+- `shop.discount.<group>`
+- `shop.bypass.stock`
 
-## Catalog design
+## Config files
 
-- Categories are loaded from `categories.yml`.
-- Items are loaded from `shop-items.yml`.
-- Items can be:
-  - buy-only
-  - sell-only
-  - buy+sell
-  - disabled
-  - hidden (not shown/imported)
-- Prices/slots/materials/status/stock are all configurable.
+- `config.yml`: global shop/economy/anti-abuse/debug settings
+- `messages.yml`: messages
+- `categories.yml`: category layout, visibility, permissions, admin-only flags
+- `shop-items.yml`: all catalog entries and pricing/stock behavior
 
-## Important balancing policy in defaults
+## SMP fairness defaults
 
-The default catalog excludes progression-breaking items from the normal shop (elytra, mace, dragon head) by keeping them hidden+disabled in a special category template.
+Elytra, mace, and dragon head remain hidden+disabled by default in the special category template.

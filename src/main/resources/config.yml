@@ -17,10 +17,32 @@ restock:
 
 economy:
   allow-sell-above-buy: false
+  multipliers:
+    global-buy-multiplier: 1.0
+    global-sell-multiplier: 1.0
+    category-buy: {}
+    category-sell: {}
+  dynamic-pricing:
+    enabled: false
+    step: 0.02
+    min-multiplier: 0.60
+    max-multiplier: 1.60
+  discounts:
+    vip: 0.05
+    elite: 0.10
+
+anti-abuse:
+  cooldown-millis: 200
+  max-transaction-per-click: 64
+  daily-limits: {}
+
+categories:
+  require-specific-permission: false
 
 gui:
   filler-material: GRAY_STAINED_GLASS_PANE
   items-per-page: 28
+  bulk-amount: 16
 
 sounds:
   enabled: true
@@ -28,3 +50,9 @@ sounds:
   failure: ENTITY_VILLAGER_NO
   volume: 1.0
   pitch: 1.0
+
+debug:
+  enabled: false
+  log-transactions: false
+  log-failures: true
+  log-stock-issues: true

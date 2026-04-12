@@ -145,7 +145,7 @@ public final class ItemActionGui extends BaseGui {
         return new ItemBuilder(Material.EMERALD)
                 .name(name)
                 .lore(List.of(
-                        "&7Price: &f" + shopService.formatPrice(item.getBuyPrice() * amount),
+                        "&7Price: &f" + shopService.formatPrice(shopService.getEffectiveBuyPriceFor(player, item) * amount),
                         "&7Stock type: " + shopService.getStockTypeDisplay(item),
                         "&7Stock: " + shopService.getStockDetailDisplay(item),
                         "&7State: " + shopService.getDisplayStatusLabel(item),
@@ -160,7 +160,7 @@ public final class ItemActionGui extends BaseGui {
                 .name(available ? "&aSell x" + amount : "&8Sell Unavailable")
                 .lore(List.of(
                         "&7Owned: &f" + shopService.countSellableItems(player, item),
-                        "&7Payout: &f" + shopService.formatPrice(item.getSellPrice() * amount),
+                        "&7Payout: &f" + shopService.formatPrice(shopService.getEffectiveSellPrice(item) * amount),
                         "&7State: " + shopService.getDisplayStatusLabel(item),
                         available ? "&eClick to sell" : "&7Selling is currently unavailable"
                 ))
@@ -170,7 +170,7 @@ public final class ItemActionGui extends BaseGui {
     private ItemStack sellAllButton(ShopItem item) {
         int amount = shopService.getSellAllAmount(player, item);
         String payout = amount > 0
-                ? shopService.formatPrice(item.getSellPrice() * amount)
+                ? shopService.formatPrice(shopService.getEffectiveSellPrice(item) * amount)
                 : shopService.formatPrice(0.0D);
         return new ItemBuilder(Material.CHEST)
                 .name("&6Sell All")

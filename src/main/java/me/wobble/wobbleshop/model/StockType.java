@@ -1,26 +1,40 @@
 package me.wobble.wobbleshop.model;
 
 public enum StockType {
-    STATIC,
-    LIMITED;
+    INFINITE,
+    LIMITED,
+    REGENERATING;
 
     public StockType next() {
-        return this == STATIC ? LIMITED : STATIC;
+        return switch (this) {
+            case INFINITE -> LIMITED;
+            case LIMITED -> REGENERATING;
+            case REGENERATING -> INFINITE;
+        };
     }
 
-    public boolean isStatic() {
-        return this == STATIC;
+    public boolean isInfinite() {
+        return this == INFINITE;
+    }
+
+    public boolean isLimitedType() {
+        return this == LIMITED || this == REGENERATING;
+    }
+
+    public boolean isRegenerating() {
+        return this == REGENERATING;
     }
 
     public static StockType fromStorage(String value) {
         if (value == null || value.isBlank()) {
-            return STATIC;
+            return INFINITE;
         }
 
         return switch (value.toUpperCase()) {
-            case "UNLIMITED", "STATIC" -> STATIC;
+            case "UNLIMITED", "STATIC", "INFINITE" -> INFINITE;
             case "LIMITED" -> LIMITED;
-            default -> STATIC;
+            case "REGENERATING" -> REGENERATING;
+            default -> INFINITE;
         };
     }
 }

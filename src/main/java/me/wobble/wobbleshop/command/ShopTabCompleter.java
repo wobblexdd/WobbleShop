@@ -27,13 +27,25 @@ public final class ShopTabCompleter implements TabCompleter {
 
         if (args.length == 2 && args[0].equalsIgnoreCase("restock")) {
             String token = args[1].toLowerCase(Locale.ROOT);
-            List<String> categoryKeys = plugin.getShopService().getAllCategories().stream()
+            return List.of("all", "category", "item").stream()
+                    .filter(value -> value.startsWith(token))
+                    .collect(Collectors.toList());
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("restock") && args[1].equalsIgnoreCase("category")) {
+            String token = args[2].toLowerCase(Locale.ROOT);
+            return plugin.getShopService().getAllCategories().stream()
                     .map(category -> category.getKey().toLowerCase(Locale.ROOT))
-                    .toList();
-            List<String> itemIds = plugin.getShopService().getAllItems().stream()
+                    .filter(value -> value.startsWith(token))
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("restock") && args[1].equalsIgnoreCase("item")) {
+            String token = args[2].toLowerCase(Locale.ROOT);
+            return plugin.getShopService().getAllItems().stream()
                     .map(item -> String.valueOf(item.getId()))
-                    .toList();
-            return java.util.stream.Stream.concat(categoryKeys.stream(), itemIds.stream())
                     .filter(value -> value.startsWith(token))
                     .distinct()
                     .sorted()

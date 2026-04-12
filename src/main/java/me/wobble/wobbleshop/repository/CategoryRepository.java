@@ -19,7 +19,7 @@ public final class CategoryRepository {
 
     public synchronized List<ShopCategory> findAll() {
         List<ShopCategory> categories = new ArrayList<>();
-        String sql = "SELECT key, display_name, material, slot, enabled FROM categories ORDER BY slot ASC";
+        String sql = "SELECT key, display_name, material, slot, enabled, permission, admin_only FROM categories ORDER BY slot ASC";
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
@@ -33,13 +33,15 @@ public final class CategoryRepository {
 
     public synchronized void save(ShopCategory category) {
         String sql = """
-                INSERT INTO categories (key, display_name, material, slot, enabled)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO categories (key, display_name, material, slot, enabled, permission, admin_only)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(key) DO UPDATE SET
                     display_name = excluded.display_name,
                     material = excluded.material,
                     slot = excluded.slot,
-                    enabled = excluded.enabled
+                    enabled = excluded.enabled,
+                    permission = excluded.permission,
+                    admin_only = excluded.admin_only
                 """;
         try (PreparedStatement statement = database.getConnection().prepareStatement(sql)) {
             statement.setString(1, category.getKey());
@@ -47,12 +49,13 @@ public final class CategoryRepository {
             statement.setString(3, category.getMaterial().name());
             statement.setInt(4, category.getSlot());
             statement.setInt(5, category.isEnabled() ? 1 : 0);
+            statement.setString(6, category.getPermission());
+            statement.setInt(7, category.isAdminOnly() ? 1 : 0);
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Could not save category " + category.getKey(), exception);
         }
     }
-
 
     public synchronized void deleteAll() {
         String sql = "DELETE FROM categories";
@@ -60,16 +63,6 @@ public final class CategoryRepository {
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Could not clear categories.", exception);
-        }
-    }
-
-    public synchronized boolean isEmpty() {
-        String sql = "SELECT COUNT(*) FROM categories";
-        try (PreparedStatement statement = database.getConnection().prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            return resultSet.next() && resultSet.getInt(1) == 0;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Could not check category count.", exception);
         }
     }
 
@@ -83,7 +76,9 @@ public final class CategoryRepository {
                 resultSet.getString("display_name"),
                 material,
                 resultSet.getInt("slot"),
-                resultSet.getInt("enabled") == 1
+                resultSet.getInt("enabled") == 1,
+                resultSet.getString("permission"),
+                resultSet.getInt("admin_only") == 1
         );
     }
 }

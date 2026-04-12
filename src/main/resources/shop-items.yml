@@ -10,7 +10,7 @@ items:
     hidden: false
     lore: ["&7Reliable starter building block."]
     min-progression-comment: "Early game"
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   oak_log:
     category: blocks
@@ -23,7 +23,7 @@ items:
     hidden: false
     lore: ["&7Useful when players start base building."]
     min-progression-comment: "Early game"
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   glass:
     category: blocks
@@ -35,7 +35,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Convenience buy for builders."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   bread:
     category: food
@@ -48,7 +48,7 @@ items:
     hidden: false
     lore: ["&7Cheap emergency food."]
     min-progression-comment: "Early game"
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   cooked_beef:
     category: food
@@ -60,7 +60,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Good mid-game hunger refill."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   golden_carrot:
     category: food
@@ -73,7 +73,7 @@ items:
     hidden: false
     lore: ["&7Priced high to avoid replacing farms."]
     min-progression-comment: "Mid game"
-    stock: { type: LIMITED, amount: 192, max: 192, restock-enabled: true, restock-interval-seconds: 1800 }
+    stock: { type: REGENERATING, amount: 96, max: 192, restock-enabled: true, restock-interval-seconds: 1800, restock-amount: 16 }
 
   wheat:
     category: farming
@@ -86,7 +86,7 @@ items:
     hidden: false
     lore: ["&7Baseline farm sell item."]
     min-progression-comment: "Early game"
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   carrot:
     category: farming
@@ -98,7 +98,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Sell-only to reward farming loops."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   sugar_cane:
     category: farming
@@ -110,7 +110,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Useful for books and rockets economy."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   bone:
     category: mobdrops
@@ -122,7 +122,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Common skeleton drop."]
-    stock: { type: LIMITED, amount: 256, max: 256, restock-enabled: true, restock-interval-seconds: 2400 }
+    stock: { type: REGENERATING, amount: 128, max: 256, restock-enabled: true, restock-interval-seconds: 2400, restock-amount: 24 }
 
   gunpowder:
     category: mobdrops
@@ -147,7 +147,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Useful for wool, bows, and trades."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   quartz:
     category: nether
@@ -185,7 +185,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Potion/lighting utility resource."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   end_stone:
     category: end
@@ -235,7 +235,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Basic utility item."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   name_tag:
     category: utility
@@ -272,7 +272,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Combat supply baseline."]
-    stock: { type: STATIC, max: 1024 }
+    stock: { type: INFINITE, max: 1024 }
 
   shield:
     category: combat
@@ -284,7 +284,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Defensive utility, not overpowered."]
-    stock: { type: STATIC, max: 256 }
+    stock: { type: INFINITE, max: 256 }
 
   iron_sword:
     category: combat
@@ -296,7 +296,7 @@ items:
     enabled: true
     hidden: false
     lore: ["&7Entry combat gear only."]
-    stock: { type: STATIC, max: 256 }
+    stock: { type: INFINITE, max: 256 }
 
   elytra:
     category: special
