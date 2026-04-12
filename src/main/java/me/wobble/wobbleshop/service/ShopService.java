@@ -353,7 +353,6 @@ public final class ShopService {
         return "&f" + item.getStock() + "&7/&f" + item.getMaxStock();
     }
 
-
     public List<Material> getCategoryMaterialCycle(String categoryKey) {
         return switch (categoryKey.toLowerCase(Locale.ROOT)) {
             case "blocks" -> List.of(Material.STONE, Material.COBBLESTONE, Material.OAK_LOG, Material.GLASS, Material.COBBLED_DEEPSLATE);

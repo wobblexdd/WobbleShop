@@ -61,4 +61,67 @@ categories:
     slot: 22
     enabled: false
     permission: "wobble.shop.admin"
+    admin-only: truecategories:
+  blocks:
+    display-name: "&7Blocks"
+    material: STONE
+    slot: 10
+    enabled: true
+    permission: ""
+    admin-only: false
+  food:
+    display-name: "&6Food"
+    material: BREAD
+    slot: 11
+    enabled: true
+    permission: ""
+    admin-only: false
+  farming:
+    display-name: "&aFarming"
+    material: WHEAT
+    slot: 12
+    enabled: true
+    permission: ""
+    admin-only: false
+  mobdrops:
+    display-name: "&cMob Drops"
+    material: BONE
+    slot: 13
+    enabled: true
+    permission: ""
+    admin-only: false
+  nether:
+    display-name: "&4Nether"
+    material: NETHERRACK
+    slot: 14
+    enabled: true
+    permission: ""
+    admin-only: false
+  end:
+    display-name: "&5End"
+    material: END_STONE
+    slot: 15
+    enabled: true
+    permission: ""
+    admin-only: false
+  utility:
+    display-name: "&bUtility"
+    material: CHEST
+    slot: 16
+    enabled: true
+    permission: ""
+    admin-only: false
+  combat:
+    display-name: "&cCombat"
+    material: IRON_SWORD
+    slot: 19
+    enabled: true
+    permission: ""
+    admin-only: false
+  special:
+    display-name: "&dSpecial"
+    material: NETHER_STAR
+    slot: 22
+    enabled: false
+    permission: "wobble.shop.admin"
     admin-only: true
